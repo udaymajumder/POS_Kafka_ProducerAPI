@@ -5,6 +5,8 @@ import org.example.POS_Realtime.POJO.EntityMapper.Product_Purchased
 import org.example.POS_Realtime.POJO.EntityMapper.Location
 import org.example.POS_Realtime.POJO.EntityMapper.Merchant
 import org.example.POS_Realtime.POJO.EntityMapper.Product
+import org.example.POS_Realtime.POJO.EntityMapper.Product_Cart
+import org.example.POS_Realtime.POJO.EntityMapper.ConsumerInvoiceDetail
 
 
 
@@ -38,6 +40,11 @@ object InvoiceSerializer {
     final case class JSONstring(value:String) extends JSONValue
     {
       def convertToString = "\"" + value + "\""
+    }
+
+    final case class JSONboolean(value:Boolean) extends JSONValue
+    {
+      def convertToString =  value.toString
     }
 
     final case class JSONlist(values:List[JSONValue]) extends JSONValue
@@ -97,13 +104,39 @@ object InvoiceSerializer {
       ))
     }
 
+    object productCartSerializer extends JsonToString[Product_Cart]
+    {
+      //case class Product_Cart(product:Product,OTY:Int=0)
+      def JtoS(value:Product_Cart) = JSONobject(Map(
+        ("PRD_PURCHASE_DTL" -> productSerializer.JtoS(value.product)),
+        ("QTY" -> JSONnumber(value.OTY))
+      ))
+    }
+
     object ProdPurchasedSerializer extends JsonToString[Product_Purchased]
     {
       //case class Product_Purchased(PRD_LIST:List[Product], BILL_AMT:Double)
       def JtoS(value:Product_Purchased):JSONValue={
         JSONobject(Map(
-          ("PRD_LIST" -> JSONlist(value.PRD_LIST.map(product=>productSerializer.JtoS(product)))),
+          ("PRD_LIST" -> JSONlist(value.PRD_LIST.map(product=>productCartSerializer.JtoS(product)))),
           ("BILL_AMT" -> JSONdouble(value.BILL_AMT))
+        ))
+      }
+    }
+
+    object ConsumerDetailSerializer extends JsonToString[ConsumerInvoiceDetail]
+    {
+      //case class ConsumerInvoiceDetail(CON_ID:Int,NAME:String,GENDER:String,PHONE:String,ADDR_LINE:String,PIN:Int,STATE:String,PRM_IND:Boolean)
+      def JtoS(value:ConsumerInvoiceDetail):JSONValue={
+        JSONobject(Map(
+          ("CON_ID" -> JSONnumber(value.CON_ID)),
+          ("NAME" -> JSONstring(value.NAME)),
+          ("GENDER" -> JSONstring(value.GENDER)),
+          ("PHONE" -> JSONstring(value.PHONE)),
+          ("ADDR_LINE" -> JSONstring(value.ADDR_LINE)),
+          ("PIN" -> JSONnumber(value.PIN)),
+          ("STATE" -> JSONstring(value.STATE)),
+          ("PRM_IND" -> JSONboolean(value.PRM_IND))
         ))
       }
     }
@@ -114,6 +147,7 @@ object InvoiceSerializer {
       def JtoS(value:Invoice):JSONValue={
         JSONobject(Map(
           ("Invoice_Number" -> JSONnumber(value.invoiceNum)),
+          ("Consumer_Detail" -> ConsumerDetailSerializer.JtoS(value.consumerDetails)),
           ("Merchant_Detail" -> MerchantSerializer.JtoS(value.merchant)),
           ("Location_Detail" -> LocationSerializer.JtoS(value.location)),
           ("Billing_Detail" -> ProdPurchasedSerializer.JtoS(value.productPurchased))
