@@ -71,7 +71,7 @@ object ProductGenerator {
           }
         }
       }
-      PRD_PURCHASED = Product_Purchased(PRD_CRT.toList, "%.2f".format(TOT_PRICE).toDouble)
+      PRD_PURCHASED = Product_Purchased(PRD_CRT.toList,((TOT_PRICE * 100).round / 100.toDouble) )
 
       PRD_PURCHASED
     }
