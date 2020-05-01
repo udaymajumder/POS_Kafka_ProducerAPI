@@ -5,18 +5,18 @@ import org.apache.logging.log4j.LogManager
 import org.example.POS_Realtime.AppUtil._
 import java.util.Properties
 
-
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
-import org.apache.kafka.common.serialization.{IntegerSerializer, StringSerializer}
-
+import org.apache.kafka.common.serialization.IntegerSerializer
+import org.example.POS_Realtime.JSONserde.InvoiceSerializer
+import org.example.POS_Realtime.POJO.EntityMapper._
 import scala.concurrent.Promise
-import scala.concurrent.Future
+//import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits._
-import scala.util.{Failure, Success}
+//import scala.util.{Failure, Success}
 
 object POS_Engine {
 
-  def submitFuture() = {
+  def submitFuture():Unit = {
 
     seq_Future = for (i <- 1 to noOfProducers) yield
       new Thread(new POSproducer(i, kafkaProducer, topicName, produceSpeed, promise))
@@ -28,25 +28,32 @@ object POS_Engine {
   logger.info(s"${logPrefix(this.getClass.getName)} - POS Invoice Application Started" )
   val properties = new Properties
 
-  val topicName = AppConfig.topicName
-  val noOfProducers = AppConfig.noOfProducers
-  val produceSpeed = AppConfig.produceSpeed
+  private var topicName:String = _
+  private var noOfProducers = 0
+  private var produceSpeed = 0
 
-  private var kafkaProducer:KafkaProducer[Int,String] = null
-  val promise = Promise[Exception]
-  private var seq_Future:Seq[Thread]= null
+  private var kafkaProducer:KafkaProducer[Int,Invoice] = _
+  private var promise: Promise[Exception] = _
+  private var seq_Future:Seq[Thread]= _
 
 
   def main(args: Array[String]): Unit = {
 
+
     logger.info(s"${logPrefix(this.getClass.getName)} - Initializing Kafka Producer" )
+
+    topicName = AppConfig.topicName
+    noOfProducers = AppConfig.noOfProducers
+    produceSpeed = AppConfig.produceSpeed
 
     properties.put(ProducerConfig.CLIENT_ID_CONFIG, AppConfig.applicationID)
     properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, AppConfig.bootstrapServers)
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer])
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[StringSerializer])
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[InvoiceSerializer])
 
-    kafkaProducer = new KafkaProducer[Int,String](properties)
+    kafkaProducer = new KafkaProducer[Int,Invoice](properties)
+
+    promise = Promise[Exception]
 
     submitFuture()
 
